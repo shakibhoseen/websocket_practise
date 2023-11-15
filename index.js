@@ -75,7 +75,7 @@ function parse( params, connection) {
       console.log(`p - ${action}`);
       switch (action) {
           case 'join':
-              Join(parsedMessage.receiver, connection);
+              Join(parsedMessage.receiver, connection, parsedMessage.data); // data use a device name
               break;
           case 'single':
               SingleSend(parsedMessage.receiver, parsedMessage.data);
@@ -89,14 +89,16 @@ function parse( params, connection) {
   }
 }
 
-function Join( id , connection) {
-  connections.set(id, connection);
-  connection.send('Joined successful');
+function Join( id , connection, deviceName) {
+  const newUser = new User(connection, id, deviceName);
+  connections.set(id, newUser);
+  sent(newUser, 'Joined successful');
+  console.log(connections.size);
 }
 function SingleSend( receiverId , message) {
-  for (const [clientId, conn] of connections) {
+  for (const [clientId, user] of connections) {
     if (clientId === receiverId) {
-      conn.send(message);
+      sent(user, message)
       console.log(`message sent to ${clientId}`);
       break;
     }
@@ -104,11 +106,29 @@ function SingleSend( receiverId , message) {
 }
 function SendALl( message ) {
   
-  for (const [clientId, conn] of connections) {
+  for (const [clientId, user] of connections) {
    
-      conn.send(message);
+      sent(user, message)
       console.log(`message sent to ${clientId}`);
       
   
+  }
+}
+
+function sent(user,message){
+  const payload = {
+    id: user.id,
+    device: user.deviceName,
+    message: message,
+  };
+
+  user.connection.send(JSON.stringify(payload));
+}
+
+class User {
+  constructor(connection, id, deviceName) {
+    this.connection = connection;
+    this.id = id;
+    this.deviceName = deviceName;
   }
 }
